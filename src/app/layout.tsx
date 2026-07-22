@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 
@@ -13,14 +13,20 @@ export const metadata: Metadata = {
     "Tetra is coming soon. Join the waitlist for early access to the next generation of crypto.",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geist.variable} h-full antialiased`}>
-      <body className={`${geist.className} min-h-full`}>{children}</body>
+    <html lang="en" className={`${geist.variable} h-full overflow-hidden antialiased`}>
+      <body className={`${geist.className} h-full overflow-hidden`}>{children}</body>
     </html>
   );
 }

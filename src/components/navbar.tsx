@@ -29,7 +29,7 @@ function TelegramIcon({ className = "" }: { className?: string }) {
 
 export function Navbar() {
   return (
-    <header className="flex w-full items-center justify-between px-2 sm:px-4">
+    <header className="flex w-full shrink-0 items-center justify-between px-1 sm:px-4">
       <a href="/" className="transition-opacity hover:opacity-80">
         <Logo />
       </a>
@@ -45,7 +45,7 @@ export function Navbar() {
           aria-label="Tetra on Telegram"
           className="text-nav-ink transition-opacity hover:opacity-70"
         >
-          <TelegramIcon className="h-[1.125rem] w-[1.125rem]" />
+          <TelegramIcon className="h-6 w-6" />
         </a>
         <a
           href={siteLinks.x}
@@ -54,7 +54,7 @@ export function Navbar() {
           aria-label="Tetra on X"
           className="text-nav-ink transition-opacity hover:opacity-70"
         >
-          <XIcon className="h-[1.125rem] w-[1.125rem]" />
+          <XIcon className="h-6 w-6" />
         </a>
       </nav>
     </header>
