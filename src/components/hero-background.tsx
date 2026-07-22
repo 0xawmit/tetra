@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * Desktop: four corner product visuals.
@@ -132,52 +132,131 @@ type VisualProps = {
   bare?: boolean;
 };
 
-const BTC_BASE = [
-  { open: 98, close: 124, high: 88, low: 132, up: false },
-  { open: 112, close: 82, high: 72, low: 120, up: true },
-  { open: 100, close: 72, high: 64, low: 108, up: true },
-  { open: 84, close: 108, high: 70, low: 118, up: false },
-  { open: 94, close: 66, high: 58, low: 102, up: true },
-  { open: 86, close: 56, high: 50, low: 92, up: true },
-  { open: 68, close: 90, high: 54, low: 98, up: false },
-  { open: 76, close: 48, high: 42, low: 84, up: true },
-  { open: 68, close: 42, high: 36, low: 76, up: true },
-  { open: 60, close: 36, high: 30, low: 68, up: true },
-] as const;
+type BtcCandle = {
+  id: number;
+  open: number;
+  close: number;
+  high: number;
+  low: number;
+  up: boolean;
+  volume: number;
+};
+
+const BTC_VISIBLE = 10;
+/** SVG y: smaller = higher price */
+const BTC_Y_MIN = 34;
+const BTC_Y_MAX = 122;
+
+const BTC_SEED: BtcCandle[] = [
+  // Left → right uptrend (smaller y = higher price)
+  { id: 0, open: 118, close: 108, high: 102, low: 124, up: true, volume: 8 },
+  { id: 1, open: 108, close: 98, high: 92, low: 114, up: true, volume: 10 },
+  { id: 2, open: 98, close: 104, high: 94, low: 110, up: false, volume: 7 },
+  { id: 3, open: 104, close: 88, high: 82, low: 110, up: true, volume: 14 },
+  { id: 4, open: 88, close: 78, high: 72, low: 94, up: true, volume: 12 },
+  { id: 5, open: 78, close: 84, high: 74, low: 90, up: false, volume: 8 },
+  { id: 6, open: 84, close: 66, high: 60, low: 90, up: true, volume: 16 },
+  { id: 7, open: 66, close: 54, high: 48, low: 72, up: true, volume: 18 },
+  { id: 8, open: 54, close: 58, high: 50, low: 64, up: false, volume: 9 },
+  { id: 9, open: 58, close: 42, high: 36, low: 64, up: true, volume: 20 },
+];
+
+function clampBtcY(n: number) {
+  return Math.min(BTC_Y_MAX, Math.max(BTC_Y_MIN, n));
+}
+
+function makeBtcCandle(prevClose: number, id: number): BtcCandle {
+  const open = clampBtcY(prevClose);
+  // Near the top: soft pullback so the next leg can climb again.
+  // Otherwise ~4 in 5 candles are green (price up = lower y).
+  const nearTop = open < 50;
+  const isUp = Math.random() < (nearTop ? 0.3 : 0.82);
+  const magnitude = 8 + Math.random() * 16;
+  const close = clampBtcY(open + (isUp ? -magnitude : magnitude * 0.7));
+  const bodyTop = Math.min(open, close);
+  const bodyBot = Math.max(open, close);
+  const high = clampBtcY(bodyTop - (4 + Math.random() * 8));
+  const low = clampBtcY(bodyBot + (4 + Math.random() * 8));
+  return {
+    id,
+    open,
+    close,
+    high: Math.min(high, bodyTop),
+    low: Math.max(low, bodyBot),
+    up: close < open,
+    volume: 6 + Math.floor(Math.random() * 14),
+  };
+}
 
 function CryptoChartVisual({ bare = false }: VisualProps) {
-  const [tick, setTick] = useState(0);
+  const [candles, setCandles] = useState<BtcCandle[]>(BTC_SEED);
+  const [price, setPrice] = useState(97240);
+  const [slide, setSlide] = useState(0);
+  const nextId = useRef(BTC_SEED.length);
+  const priceRef = useRef(97240);
 
   useEffect(() => {
+    let formStep = 0;
+    let settleTimer: number | undefined;
+
     const id = window.setInterval(() => {
-      setTick((t) => t + 1);
-    }, 1000);
-    return () => window.clearInterval(id);
+      formStep += 1;
+
+      // Every second: lock the live candle and scroll in a new one
+      if (formStep % 5 === 0) {
+        setCandles((prev) => {
+          const last = prev[prev.length - 1]!;
+          const fresh = makeBtcCandle(last.close, nextId.current++);
+          const deltaY = last.close - fresh.close;
+          priceRef.current = Math.max(
+            90000,
+            Math.round(
+              priceRef.current + deltaY * 42 + (Math.random() - 0.5) * 24,
+            ),
+          );
+          return [...prev.slice(1), fresh];
+        });
+        setPrice(priceRef.current);
+        // Instant offset cancels the index jump, then ease into place
+        setSlide(24);
+        window.clearTimeout(settleTimer);
+        settleTimer = window.setTimeout(() => setSlide(0), 16);
+        return;
+      }
+
+      // Between seconds: form the live candle so the body keeps ticking
+      setCandles((prev) => {
+        const next = prev.slice();
+        const last = { ...next[next.length - 1]! };
+        const nudge = (Math.random() - 0.62) * 10;
+        const close = clampBtcY(last.close + nudge);
+        last.close = close;
+        last.up = close < last.open;
+        last.high = Math.min(last.high, Math.min(last.open, close));
+        last.low = Math.max(last.low, Math.max(last.open, close));
+        next[next.length - 1] = last;
+        priceRef.current = Math.max(
+          90000,
+          Math.round(priceRef.current - nudge * 18),
+        );
+        return next;
+      });
+      setPrice(priceRef.current);
+    }, 200);
+
+    return () => {
+      window.clearInterval(id);
+      window.clearTimeout(settleTimer);
+    };
   }, []);
 
-  // Nudge the latest candle each second so the chart "ticks"
-  const candles = BTC_BASE.map((c, i) => {
-    if (i < BTC_BASE.length - 1) return c;
-    const wobble = ((tick % 5) - 2) * 3;
-    const close = Math.min(58, Math.max(28, c.close + wobble));
-    const open = c.open;
-    const up = close < open;
-    return {
-      open,
-      close,
-      high: Math.min(c.high, Math.min(open, close) - 6),
-      low: Math.max(c.low, Math.max(open, close) + 8),
-      up,
-    };
-  });
-
-  const price = 97200 + (tick % 17) * 14 - 40;
   // Bare (mobile): keep labels in a clear header row; chart sits below.
   const labelY = bare ? 11 : 16;
   const tickCy = bare ? 7 : 12;
   const chartTop = bare ? 26 : 40;
   const viewH = bare ? 130 : 150;
   const volumeBase = bare ? 126 : 146;
+  const visible = candles.slice(-BTC_VISIBLE);
 
   return (
     <Panel tone="white" bare={bare}>
@@ -227,30 +306,37 @@ function CryptoChartVisual({ bare = false }: VisualProps) {
             strokeOpacity="0.08"
           />
         ))}
-        <g strokeLinecap="round">
-          {candles.map((c, i) => {
+        <g
+          className={slide === 0 ? "anim-btc-scroll" : undefined}
+          strokeLinecap="round"
+          style={{ transform: `translateX(${-slide}px)` }}
+        >
+          {visible.map((c, i) => {
             const x = 24 + i * 24;
             const bodyTop = Math.min(c.open, c.close);
-            const bodyH = Math.max(4, Math.abs(c.close - c.open));
+            const bodyH = Math.max(5, Math.abs(c.close - c.open));
             const color = c.up ? "var(--brand-green)" : "var(--brand-teal)";
-            const isLive = i === candles.length - 1;
+            const isLive = i === visible.length - 1;
             return (
-              <g key={`${i}-${isLive ? tick : 0}`} className={isLive ? "anim-btc-candle" : undefined}>
+              <g
+                key={c.id}
+                className={isLive ? "anim-btc-candle" : undefined}
+              >
                 <line
                   x1={x}
                   y1={c.high}
                   x2={x}
                   y2={c.low}
                   stroke={color}
-                  strokeWidth="1.5"
+                  strokeWidth="2"
                   strokeOpacity={c.up ? 1 : 0.5}
                 />
                 <rect
-                  x={x - 5}
+                  x={x - 7}
                   y={bodyTop}
-                  width="10"
+                  width="14"
                   height={bodyH}
-                  rx="1.5"
+                  rx="2"
                   fill={color}
                   fillOpacity={c.up ? 1 : 0.4}
                 />
@@ -258,15 +344,20 @@ function CryptoChartVisual({ bare = false }: VisualProps) {
             );
           })}
         </g>
-        <g fill="var(--brand-forest)" fillOpacity="0.55">
-          {[8, 12, 10, 6, 14, 16, 8, 18, 12, 20].map((h, i) => (
+        <g
+          className={slide === 0 ? "anim-btc-scroll" : undefined}
+          fill="var(--brand-forest)"
+          fillOpacity="0.55"
+          style={{ transform: `translateX(${-slide}px)` }}
+        >
+          {visible.map((c, i) => (
             <rect
-              key={i}
-              x={19 + i * 24}
-              y={volumeBase - h}
-              width="10"
-              height={h}
-              rx="1"
+              key={`vol-${c.id}`}
+              x={17 + i * 24}
+              y={volumeBase - c.volume}
+              width="14"
+              height={c.volume}
+              rx="1.5"
             />
           ))}
         </g>
@@ -285,7 +376,7 @@ function StocksVisual({ bare = false }: VisualProps) {
   ];
 
   return (
-    <Panel tone="mint" bare={bare}>
+    <Panel tone="white" bare={bare}>
       <svg
         viewBox={bare ? "0 0 260 120" : "0 0 260 150"}
         fill="none"
@@ -296,8 +387,7 @@ function StocksVisual({ bare = false }: VisualProps) {
           <text
             x="4"
             y="12"
-            fill="var(--brand-forest)"
-            fillOpacity="0.55"
+            fill="var(--brand-slate)"
             fontSize="9"
             fontFamily="var(--font-geist-sans), sans-serif"
             letterSpacing="0.12em"
@@ -313,7 +403,7 @@ function StocksVisual({ bare = false }: VisualProps) {
               width="252"
               height="24"
               rx="7"
-              fill={bare ? "var(--brand-mint)" : "var(--brand-white)"}
+              fill="var(--brand-mint)"
             />
             <text
               x="16"
@@ -362,7 +452,7 @@ function YieldVisual({ bare = false }: VisualProps) {
   ];
 
   return (
-    <Panel tone="mint" bare={bare}>
+    <Panel tone="white" bare={bare}>
       <svg
         viewBox={bare ? "0 0 260 130" : "0 0 260 150"}
         fill="none"
@@ -396,16 +486,6 @@ function YieldVisual({ bare = false }: VisualProps) {
             fillOpacity={bar.opacity ?? 1}
           />
         ))}
-        <text
-          x="16"
-          y={bare ? 18 : 36}
-          fill="var(--brand-forest)"
-          fillOpacity="0.45"
-          fontSize="10"
-          fontFamily="var(--font-geist-sans), sans-serif"
-        >
-          Idle stables → yield
-        </text>
       </svg>
     </Panel>
   );
@@ -417,24 +497,29 @@ function CardVisual({ bare = false }: VisualProps) {
       fill: "var(--brand-forest)",
       ink: "var(--brand-white)",
       sub: "var(--brand-mint)",
+      strokeOpacity: 0.2,
       className: bare ? "anim-card-fan-0-once" : "anim-card-fan-0",
     },
     {
       fill: "var(--brand-teal)",
       ink: "var(--brand-white)",
       sub: "var(--brand-mint)",
+      strokeOpacity: 0.2,
       className: bare ? "anim-card-fan-1-once" : "anim-card-fan-1",
     },
     {
       fill: "var(--brand-green)",
       ink: "var(--brand-forest)",
       sub: "var(--brand-forest)",
+      strokeOpacity: 0.2,
       className: bare ? "anim-card-fan-2-once" : "anim-card-fan-2",
     },
     {
-      fill: "var(--brand-mint)",
+      // Front card — white surface so it reads clearly on the panel
+      fill: "var(--brand-white)",
       ink: "var(--brand-forest)",
       sub: "var(--brand-teal)",
+      strokeOpacity: 0.35,
       className: bare ? "anim-card-fan-3-once" : "anim-card-fan-3",
     },
   ] as const;
@@ -454,7 +539,7 @@ function CardVisual({ bare = false }: VisualProps) {
             height="104"
             rx="14"
             stroke={card.ink}
-            strokeOpacity="0.2"
+            strokeOpacity={card.strokeOpacity}
           />
           <rect
             x="16"

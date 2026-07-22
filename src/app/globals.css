@@ -418,6 +418,10 @@ body {
   animation: btc-candle-flash 0.45s ease-out;
 }
 
+.anim-btc-scroll {
+  transition: transform 0.35s ease-out;
+}
+
 /* Stocks: draw sparkline left → right */
 @keyframes stock-draw {
   0% {
@@ -620,6 +624,7 @@ body {
   .hero-corner-card:hover,
   .anim-btc-tick,
   .anim-btc-candle,
+  .anim-btc-scroll,
   .anim-stock-draw,
   .anim-stock-draw-once,
   .anim-yield-bar,
