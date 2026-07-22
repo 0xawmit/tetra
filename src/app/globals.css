@@ -1,26 +1,301 @@
 @import "tailwindcss";
 
+/*
+ * Vela brand palette — source of truth for site-wide color.
+ * Prefer semantic tokens (--page-bg, --cta, …) in UI; use --brand-* when you need a raw swatch.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand swatches */
+  --brand-mint: #e5f9f1;
+  --brand-white: #ffffff;
+  --brand-forest: #0b352b;
+  --brand-teal: #32a184;
+  --brand-green: #5fc5a5;
+  --brand-slate: #20282b;
+  --brand-black: #000000;
+
+  /* Semantic tokens — default scheme matches former /color-three */
+  --page-bg: var(--brand-mint);
+  /* Hero + footer card surface and the text that sits on it */
+  --hero-surface: var(--brand-teal);
+  --hero-ink: var(--brand-white);
+  --hero-ink-muted: color-mix(in srgb, var(--brand-mint) 85%, var(--brand-white));
+  /* Big headings + controls that sit directly on the page background */
+  --page-heading: var(--brand-forest);
+  --nav-ink: var(--brand-forest);
+  --surface: var(--brand-mint);
+  --surface-elevated: var(--brand-white);
+  --ink: var(--brand-forest);
+  --ink-muted: color-mix(in srgb, var(--brand-forest) 65%, transparent);
+  --ink-faint: color-mix(in srgb, var(--brand-forest) 40%, transparent);
+  --cta: var(--brand-green);
+  --cta-ink: var(--brand-forest);
+  --cta-hover: var(--brand-teal);
+  --field: color-mix(in srgb, var(--brand-forest) 78%, var(--brand-black));
+  --field-border: color-mix(in srgb, var(--brand-teal) 45%, var(--brand-forest));
+  /* Text inside the (always dark) email field pill */
+  --field-ink: var(--brand-white);
+  --field-ink-faint: var(--brand-white);
+  --accent: var(--brand-teal);
+  --accent-soft: var(--brand-green);
+
+  /*
+   * Accent card surfaces (statement wallet cards, Vela card, feature cards).
+   * Themes whose page background collides with these swatches remap them.
+   * --card-green-pop is the high-contrast detail color used inside visuals
+   * that sit on a card-green surface.
+   */
+  --card-green: var(--brand-green);
+  --card-green-ink: var(--brand-forest);
+  --card-green-pop: var(--brand-white);
+  --card-teal: var(--brand-teal);
+  --card-teal-ink: var(--brand-white);
+  /* The formerly-mint wallet cards (Exchange, Card) — dark green by default */
+  --card-mint: var(--brand-forest);
+  --card-mint-ink: var(--brand-white);
+}
+
+/*
+ * Color-scheme experiment themes. Apply one of these classes to the page
+ * wrapper (see /color-one … /color-five) to reskin the site.
+ */
+.theme-color-one {
+  /* White page, dark-green hero */
+  --page-bg: var(--brand-white);
+  --hero-surface: var(--brand-forest);
+  --hero-ink: var(--brand-white);
+  --hero-ink-muted: color-mix(in srgb, var(--brand-mint) 75%, var(--brand-teal));
+  --page-heading: var(--brand-forest);
+  --nav-ink: var(--brand-forest);
+}
+
+.theme-color-two {
+  /* Mint page, dark-green hero */
+  --page-bg: var(--brand-mint);
+  --hero-surface: var(--brand-forest);
+  --hero-ink: var(--brand-white);
+  --hero-ink-muted: color-mix(in srgb, var(--brand-mint) 75%, var(--brand-teal));
+  --page-heading: var(--brand-forest);
+  --nav-ink: var(--brand-forest);
+}
+
+.theme-color-three {
+  /* Former root: forest page, green hero */
+  --page-bg: var(--brand-forest);
+  --hero-surface: var(--brand-green);
+  --hero-ink: var(--brand-forest);
+  --hero-ink-muted: color-mix(in srgb, var(--brand-forest) 70%, transparent);
+  --page-heading: var(--brand-white);
+  --nav-ink: var(--brand-white);
+  --surface: var(--brand-forest);
+  --surface-elevated: color-mix(in srgb, var(--brand-forest) 88%, var(--brand-white));
+  --ink: var(--brand-white);
+  --ink-muted: color-mix(in srgb, var(--brand-mint) 78%, var(--brand-teal));
+  --ink-faint: color-mix(in srgb, var(--brand-green) 55%, var(--brand-white));
+  /* Dark cards would vanish on the forest page; keep these mint here. */
+  --card-mint: var(--brand-mint);
+  --card-mint-ink: var(--brand-forest);
+}
+
+.theme-color-four {
+  /* Green page (#5FC5A5), dark-green hero */
+  --page-bg: var(--brand-green);
+  --hero-surface: var(--brand-forest);
+  --hero-ink: var(--brand-white);
+  --hero-ink-muted: color-mix(in srgb, var(--brand-mint) 75%, var(--brand-teal));
+  --page-heading: var(--brand-forest);
+  --nav-ink: var(--brand-forest);
+  /* Green/teal cards would blend into the green page; remap them. */
+  --card-green: var(--brand-mint);
+  --card-green-pop: var(--brand-teal);
+  --card-teal: var(--brand-forest);
+}
+
+.theme-color-five {
+  /* White page, mint hero, teal hero text */
+  --page-bg: var(--brand-white);
+  --hero-surface: var(--brand-mint);
+  --hero-ink: var(--brand-teal);
+  --hero-ink-muted: color-mix(in srgb, var(--brand-teal) 72%, transparent);
+  --page-heading: var(--brand-forest);
+  --nav-ink: var(--brand-forest);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-brand-mint: var(--brand-mint);
+  --color-brand-white: var(--brand-white);
+  --color-brand-forest: var(--brand-forest);
+  --color-brand-teal: var(--brand-teal);
+  --color-brand-green: var(--brand-green);
+  --color-brand-slate: var(--brand-slate);
+  --color-brand-black: var(--brand-black);
+
+  --color-page-bg: var(--page-bg);
+  --color-hero-surface: var(--hero-surface);
+  --color-hero-ink: var(--hero-ink);
+  --color-hero-ink-muted: var(--hero-ink-muted);
+  --color-page-heading: var(--page-heading);
+  --color-nav-ink: var(--nav-ink);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-cta: var(--cta);
+  --color-cta-ink: var(--cta-ink);
+  --color-cta-hover: var(--cta-hover);
+  --color-field: var(--field);
+  --color-field-border: var(--field-border);
+  --color-field-ink: var(--field-ink);
+  --color-field-ink-faint: var(--field-ink-faint);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-card-green: var(--card-green);
+  --color-card-green-ink: var(--card-green-ink);
+  --color-card-teal: var(--card-teal);
+  --color-card-teal-ink: var(--card-teal-ink);
+  --color-card-mint: var(--card-mint);
+  --color-card-mint-ink: var(--card-mint-ink);
+
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-geist-sans);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100%;
+  margin: 0;
+  background: var(--page-bg);
+  color: var(--ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes soft-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-fade-up-delay-1 {
+  animation: fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+}
+
+.animate-fade-up-delay-2 {
+  animation: fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.24s both;
+}
+
+.hero-glow {
+  animation: soft-pulse 8s ease-in-out infinite;
+}
+
+/* Ambient in-card animations — subtle, slow, just enough to catch the eye. */
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -32;
+  }
+}
+
+@keyframes bar-breathe {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.88);
+  }
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes blink-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.anim-dash-flow {
+  animation: dash-flow 2.4s linear infinite;
+}
+
+.anim-bar-breathe {
+  transform-box: fill-box;
+  transform-origin: bottom center;
+  animation: bar-breathe 3.2s ease-in-out infinite;
+}
+
+.anim-bob {
+  animation: bob 3.6s ease-in-out infinite;
+}
+
+.anim-blink {
+  animation: blink-dot 2.8s ease-in-out infinite;
+}
+
+.anim-spin-slow {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: spin-slow 16s linear infinite;
+}
+
+.anim-pulse-soft {
+  animation: soft-pulse 3.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-fade-up-delay-1,
+  .animate-fade-up-delay-2,
+  .hero-glow,
+  .anim-dash-flow,
+  .anim-bar-breathe,
+  .anim-bob,
+  .anim-blink,
+  .anim-spin-slow,
+  .anim-pulse-soft {
+    animation: none;
+  }
 }
