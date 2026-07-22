@@ -210,6 +210,44 @@ body {
   animation: fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.24s both;
 }
 
+.mobile-hero-track {
+  transition: transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mobile-hero-track--instant {
+  transition: none;
+}
+
+@keyframes mobile-hero-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes mobile-hero-out {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, -8px, 0);
+  }
+}
+
+.mobile-hero-scene--in {
+  animation: mobile-hero-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.mobile-hero-scene--out {
+  animation: mobile-hero-out 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 .hero-glow {
   animation: soft-pulse 8s ease-in-out infinite;
 }
@@ -402,6 +440,13 @@ body {
   animation: stock-draw 4.5s ease-in-out infinite;
 }
 
+/* Mobile hero: play once empty → drawn → empty */
+.anim-stock-draw-once {
+  stroke-dasharray: 120;
+  stroke-dashoffset: 120;
+  animation: stock-draw 4.5s ease-in-out both;
+}
+
 /* Yield: grow one-by-one, then shrink one-by-one */
 @keyframes yield-bar {
   0% {
@@ -425,6 +470,12 @@ body {
   transform-box: fill-box;
   transform-origin: bottom center;
   animation: yield-bar 5.6s ease-in-out infinite;
+}
+
+.anim-yield-bar-once {
+  transform-box: fill-box;
+  transform-origin: bottom center;
+  animation: yield-bar 5.6s ease-in-out both;
 }
 
 /* Debit cards: stack → fan → stack */
@@ -520,6 +571,39 @@ body {
   animation-delay: 0.36s;
 }
 
+.anim-card-fan-0-once,
+.anim-card-fan-1-once,
+.anim-card-fan-2-once,
+.anim-card-fan-3-once {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation-duration: 7s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: 1;
+  animation-fill-mode: both;
+  will-change: transform;
+}
+
+.anim-card-fan-0-once {
+  animation-name: card-fan-0;
+  animation-delay: 0s;
+}
+
+.anim-card-fan-1-once {
+  animation-name: card-fan-1;
+  animation-delay: 0.12s;
+}
+
+.anim-card-fan-2-once {
+  animation-name: card-fan-2;
+  animation-delay: 0.24s;
+}
+
+.anim-card-fan-3-once {
+  animation-name: card-fan-3;
+  animation-delay: 0.36s;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-up,
   .animate-fade-up-delay-1,
@@ -537,19 +621,38 @@ body {
   .anim-btc-tick,
   .anim-btc-candle,
   .anim-stock-draw,
+  .anim-stock-draw-once,
   .anim-yield-bar,
+  .anim-yield-bar-once,
   .anim-card-fan-0,
   .anim-card-fan-1,
   .anim-card-fan-2,
-  .anim-card-fan-3 {
+  .anim-card-fan-3,
+  .anim-card-fan-0-once,
+  .anim-card-fan-1-once,
+  .anim-card-fan-2-once,
+  .anim-card-fan-3-once {
     animation: none;
   }
 
-  .anim-stock-draw {
+  .anim-stock-draw,
+  .anim-stock-draw-once {
     stroke-dashoffset: 0;
   }
 
-  .anim-yield-bar {
+  .anim-yield-bar,
+  .anim-yield-bar-once {
     transform: scaleY(1);
+  }
+
+  .mobile-hero-track {
+    transition: none;
+  }
+
+  .mobile-hero-scene--in,
+  .mobile-hero-scene--out {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 }

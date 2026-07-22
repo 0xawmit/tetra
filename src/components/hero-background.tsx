@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 /**
  * Desktop: four corner product visuals.
- * Mobile: no product cards — clean hero copy + waitlist only.
+ * Mobile: illustration card is rendered in the landing layout flow.
  */
 export function HeroBackground() {
   return (
@@ -34,13 +34,89 @@ export function HeroBackground() {
   );
 }
 
+const MOBILE_HOLD_MS = 8200;
+const MOBILE_EXIT_MS = 480;
+
+const MOBILE_SCENES = [
+  { heading: "Trade crypto", Visual: CryptoChartVisual },
+  { heading: "Tokenized stocks", Visual: StocksVisual },
+  { heading: "Earn yield", Visual: YieldVisual },
+  { heading: "Spend anywhere", Visual: CardVisual },
+];
+
+/** Mobile-only product illustration — one card; heading + content cycle with enter/exit. */
+export function MobileHeroCard() {
+  const [index, setIndex] = useState(0);
+  const [phase, setPhase] = useState<"in" | "out">("in");
+
+  useEffect(() => {
+    let holdTimer: number | undefined;
+    let exitTimer: number | undefined;
+    let cancelled = false;
+
+    function scheduleCycle() {
+      holdTimer = window.setTimeout(() => {
+        if (cancelled) return;
+        setPhase("out");
+        exitTimer = window.setTimeout(() => {
+          if (cancelled) return;
+          setIndex((i) => (i + 1) % MOBILE_SCENES.length);
+          setPhase("in");
+          scheduleCycle();
+        }, MOBILE_EXIT_MS);
+      }, MOBILE_HOLD_MS);
+    }
+
+    scheduleCycle();
+
+    return () => {
+      cancelled = true;
+      if (holdTimer !== undefined) window.clearTimeout(holdTimer);
+      if (exitTimer !== undefined) window.clearTimeout(exitTimer);
+    };
+  }, []);
+
+  const scene = MOBILE_SCENES[index];
+  const Visual = scene.Visual;
+  const animClass =
+    phase === "in" ? "mobile-hero-scene--in" : "mobile-hero-scene--out";
+
+  return (
+    <div
+      aria-hidden="true"
+      className="mx-auto h-[12.5rem] w-full max-w-[19rem]"
+    >
+      <div className="flex h-full w-full flex-col overflow-hidden rounded-[1.25rem] border border-brand-forest/10 bg-brand-white p-3 shadow-[0_12px_40px_rgba(11,53,43,0.18)]">
+        <p
+          key={`heading-${index}`}
+          className={`mobile-hero-scene shrink-0 text-left text-[10px] font-semibold tracking-[0.14em] text-brand-slate uppercase ${animClass}`}
+        >
+          {scene.heading}
+        </p>
+        <div
+          key={`body-${index}`}
+          className={`mobile-hero-scene mt-1.5 min-h-0 flex-1 ${animClass}`}
+        >
+          {/* Remount each visit so in-card motion always starts from scratch */}
+          <Visual bare key={index} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Panel({
   children,
   tone = "white",
+  bare = false,
 }: {
   children: React.ReactNode;
   tone?: "white" | "mint";
+  bare?: boolean;
 }) {
+  if (bare) {
+    return <div className="h-full w-full">{children}</div>;
+  }
   const bg = tone === "mint" ? "bg-brand-mint" : "bg-brand-white";
   return (
     <div
@@ -50,6 +126,11 @@ function Panel({
     </div>
   );
 }
+
+type VisualProps = {
+  /** Strip panel chrome + section labels — used inside the mobile single card. */
+  bare?: boolean;
+};
 
 const BTC_BASE = [
   { open: 98, close: 124, high: 88, low: 132, up: false },
@@ -64,7 +145,7 @@ const BTC_BASE = [
   { open: 60, close: 36, high: 30, low: 68, up: true },
 ] as const;
 
-function CryptoChartVisual() {
+function CryptoChartVisual({ bare = false }: VisualProps) {
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
@@ -91,13 +172,24 @@ function CryptoChartVisual() {
   });
 
   const price = 97200 + (tick % 17) * 14 - 40;
+  // Bare (mobile): keep labels in a clear header row; chart sits below.
+  const labelY = bare ? 11 : 16;
+  const tickCy = bare ? 7 : 12;
+  const chartTop = bare ? 26 : 40;
+  const viewH = bare ? 130 : 150;
+  const volumeBase = bare ? 126 : 146;
 
   return (
-    <Panel tone="white">
-      <svg viewBox="0 0 260 150" fill="none" className="h-auto w-full">
+    <Panel tone="white" bare={bare}>
+      <svg
+        viewBox={`0 0 260 ${viewH}`}
+        fill="none"
+        className={bare ? "h-full w-full" : "h-auto w-full"}
+        preserveAspectRatio="xMidYMid meet"
+      >
         <text
           x="4"
-          y="16"
+          y={labelY}
           fill="var(--brand-forest)"
           fontSize="13"
           fontWeight="600"
@@ -109,13 +201,13 @@ function CryptoChartVisual() {
         <circle
           className="anim-btc-tick"
           cx="40"
-          cy="12"
+          cy={tickCy}
           r="3"
           fill="var(--brand-green)"
         />
         <text
           x="256"
-          y="16"
+          y={labelY}
           textAnchor="end"
           fill="var(--brand-teal)"
           fontSize="12"
@@ -124,7 +216,7 @@ function CryptoChartVisual() {
         >
           ${price.toLocaleString("en-US")}
         </text>
-        {[40, 68, 96, 124].map((y) => (
+        {[chartTop, chartTop + 28, chartTop + 56, chartTop + 84].map((y) => (
           <line
             key={y}
             x1="4"
@@ -171,7 +263,7 @@ function CryptoChartVisual() {
             <rect
               key={i}
               x={19 + i * 24}
-              y={146 - h}
+              y={volumeBase - h}
               width="10"
               height={h}
               rx="1"
@@ -183,28 +275,36 @@ function CryptoChartVisual() {
   );
 }
 
-function StocksVisual() {
+function StocksVisual({ bare = false }: VisualProps) {
+  const y0 = bare ? 18 : 38;
   const rows = [
-    { y: 38, sym: "AAPL", chg: "+1.4%", up: true, d: "M110 44 L128 40 L146 42 L164 34 L182 32" },
-    { y: 66, sym: "NVDA", chg: "+2.8%", up: true, d: "M110 72 L128 68 L146 70 L164 62 L182 60" },
-    { y: 94, sym: "MSFT", chg: "+0.9%", up: true, d: "M110 100 L128 96 L146 98 L164 92 L182 90" },
-    { y: 122, sym: "TSLA", chg: "−0.6%", up: false, d: "M110 118 L128 122 L146 120 L164 126 L182 128" },
+    { y: y0, sym: "AAPL", chg: "+1.4%", up: true, d: `M110 ${y0 + 6} L128 ${y0 + 2} L146 ${y0 + 4} L164 ${y0 - 4} L182 ${y0 - 6}` },
+    { y: y0 + 28, sym: "NVDA", chg: "+2.8%", up: true, d: `M110 ${y0 + 34} L128 ${y0 + 30} L146 ${y0 + 32} L164 ${y0 + 24} L182 ${y0 + 22}` },
+    { y: y0 + 56, sym: "MSFT", chg: "+0.9%", up: true, d: `M110 ${y0 + 62} L128 ${y0 + 58} L146 ${y0 + 60} L164 ${y0 + 54} L182 ${y0 + 52}` },
+    { y: y0 + 84, sym: "TSLA", chg: "−0.6%", up: false, d: `M110 ${y0 + 80} L128 ${y0 + 84} L146 ${y0 + 82} L164 ${y0 + 88} L182 ${y0 + 90}` },
   ];
 
   return (
-    <Panel tone="mint">
-      <svg viewBox="0 0 260 150" fill="none" className="h-auto w-full">
-        <text
-          x="4"
-          y="12"
-          fill="var(--brand-forest)"
-          fillOpacity="0.55"
-          fontSize="9"
-          fontFamily="var(--font-geist-sans), sans-serif"
-          letterSpacing="0.12em"
-        >
-          TOKENIZED US STOCKS
-        </text>
+    <Panel tone="mint" bare={bare}>
+      <svg
+        viewBox={bare ? "0 0 260 120" : "0 0 260 150"}
+        fill="none"
+        className={bare ? "h-full w-full" : "h-auto w-full"}
+        preserveAspectRatio="xMidYMid meet"
+      >
+        {!bare && (
+          <text
+            x="4"
+            y="12"
+            fill="var(--brand-forest)"
+            fillOpacity="0.55"
+            fontSize="9"
+            fontFamily="var(--font-geist-sans), sans-serif"
+            letterSpacing="0.12em"
+          >
+            TOKENIZED US STOCKS
+          </text>
+        )}
         {rows.map((row, i) => (
           <g key={row.sym}>
             <rect
@@ -213,7 +313,7 @@ function StocksVisual() {
               width="252"
               height="24"
               rx="7"
-              fill="var(--brand-white)"
+              fill={bare ? "var(--brand-mint)" : "var(--brand-white)"}
             />
             <text
               x="16"
@@ -226,7 +326,7 @@ function StocksVisual() {
               {row.sym}
             </text>
             <path
-              className="anim-stock-draw"
+              className={bare ? "anim-stock-draw-once" : "anim-stock-draw"}
               style={{ animationDelay: `${i * 0.35}s` }}
               d={row.d}
               stroke={row.up ? "var(--brand-teal)" : "var(--brand-forest)"}
@@ -253,32 +353,39 @@ function StocksVisual() {
   );
 }
 
-function YieldVisual() {
+function YieldVisual({ bare = false }: VisualProps) {
   const bars = [
-    { x: 28, y: 100, h: 36, fill: "var(--brand-teal)", delay: "0s" },
-    { x: 80, y: 78, h: 58, fill: "var(--brand-green)", delay: "0.35s" },
-    { x: 132, y: 52, h: 84, fill: "var(--brand-forest)", delay: "0.7s", opacity: 0.75 },
-    { x: 184, y: 32, h: 104, fill: "var(--brand-forest)", delay: "1.05s" },
+    { x: 28, y: bare ? 80 : 100, h: 36, fill: "var(--brand-teal)", delay: "0s" },
+    { x: 80, y: bare ? 58 : 78, h: 58, fill: "var(--brand-green)", delay: "0.35s" },
+    { x: 132, y: bare ? 32 : 52, h: 84, fill: "var(--brand-forest)", delay: "0.7s", opacity: 0.75 },
+    { x: 184, y: bare ? 12 : 32, h: 104, fill: "var(--brand-forest)", delay: "1.05s" },
   ];
 
   return (
-    <Panel tone="mint">
-      <svg viewBox="0 0 260 150" fill="none" className="h-auto w-full">
-        <text
-          x="4"
-          y="14"
-          fill="var(--brand-forest)"
-          fillOpacity="0.7"
-          fontSize="10"
-          fontFamily="var(--font-geist-sans), sans-serif"
-          letterSpacing="0.06em"
-        >
-          Earn yield
-        </text>
+    <Panel tone="mint" bare={bare}>
+      <svg
+        viewBox={bare ? "0 0 260 130" : "0 0 260 150"}
+        fill="none"
+        className={bare ? "h-full w-full" : "h-auto w-full"}
+        preserveAspectRatio="xMidYMid meet"
+      >
+        {!bare && (
+          <text
+            x="4"
+            y="14"
+            fill="var(--brand-forest)"
+            fillOpacity="0.7"
+            fontSize="10"
+            fontFamily="var(--font-geist-sans), sans-serif"
+            letterSpacing="0.06em"
+          >
+            Earn yield
+          </text>
+        )}
         {bars.map((bar) => (
           <rect
             key={bar.x}
-            className="anim-yield-bar"
+            className={bare ? "anim-yield-bar-once" : "anim-yield-bar"}
             style={{ animationDelay: bar.delay }}
             x={bar.x}
             y={bar.y}
@@ -291,7 +398,7 @@ function YieldVisual() {
         ))}
         <text
           x="16"
-          y="36"
+          y={bare ? 18 : 36}
           fill="var(--brand-forest)"
           fillOpacity="0.45"
           fontSize="10"
@@ -304,36 +411,41 @@ function YieldVisual() {
   );
 }
 
-function CardVisual() {
+function CardVisual({ bare = false }: VisualProps) {
   const cards = [
     {
       fill: "var(--brand-forest)",
       ink: "var(--brand-white)",
       sub: "var(--brand-mint)",
-      className: "anim-card-fan-0",
+      className: bare ? "anim-card-fan-0-once" : "anim-card-fan-0",
     },
     {
       fill: "var(--brand-teal)",
       ink: "var(--brand-white)",
       sub: "var(--brand-mint)",
-      className: "anim-card-fan-1",
+      className: bare ? "anim-card-fan-1-once" : "anim-card-fan-1",
     },
     {
       fill: "var(--brand-green)",
       ink: "var(--brand-forest)",
       sub: "var(--brand-forest)",
-      className: "anim-card-fan-2",
+      className: bare ? "anim-card-fan-2-once" : "anim-card-fan-2",
     },
     {
       fill: "var(--brand-mint)",
       ink: "var(--brand-forest)",
       sub: "var(--brand-teal)",
-      className: "anim-card-fan-3",
+      className: bare ? "anim-card-fan-3-once" : "anim-card-fan-3",
     },
   ] as const;
 
-  return (
-    <svg viewBox="0 0 260 160" fill="none" className="h-auto w-full overflow-visible">
+  const svg = (
+    <svg
+      viewBox="0 0 260 160"
+      fill="none"
+      className={`w-full overflow-visible ${bare ? "h-full" : "h-auto"}`}
+      preserveAspectRatio="xMidYMid meet"
+    >
       {cards.map((card, i) => (
         <g key={i} className={card.className}>
           <rect width="180" height="104" rx="14" fill={card.fill} />
@@ -383,4 +495,10 @@ function CardVisual() {
       ))}
     </svg>
   );
+
+  if (bare) {
+    return <div className="flex h-full w-full items-center justify-center overflow-hidden">{svg}</div>;
+  }
+
+  return svg;
 }

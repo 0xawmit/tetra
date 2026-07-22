@@ -29,7 +29,7 @@ function TelegramIcon({ className = "" }: { className?: string }) {
 
 export function Navbar() {
   return (
-    <header className="flex w-full shrink-0 items-center justify-between px-1 sm:px-4">
+    <header className="flex w-full shrink-0 items-center justify-between px-2 sm:px-4">
       <a href="/" className="transition-opacity hover:opacity-80">
         <Logo />
       </a>
